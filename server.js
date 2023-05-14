@@ -10,9 +10,22 @@ const bcrypt = require('bcrypt')
 const User = require('./models/User');
 const LocalStrategy = require("passport-local").Strategy;
 
+const MongoDBStore = require('connect-mongodb-session')(session)
+
+const store = new MongoDBStore({
+  uri: process.env.MONGO_URI,
+  collection: 'sessions'
+});
+
+// Catch errors
+store.on('error', function (error) {
+  console.log(error);
+});
+
 
 app.set("view engine", "ejs");
 
+// passport authentication 
 passport.use(
 	new LocalStrategy(async (username, password, done) => {
 	  try {
@@ -47,9 +60,11 @@ passport.use(
 
 // middleware 
 app.use(express.json())
-app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: true }));
-
-
+app.use(session({
+	secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: true,
+	store: store
+  }));
+// app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: true }));
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -65,6 +80,7 @@ app.get("/", (req, res) => {
 	}
 	res.render("pages/index", {user: req.user, messages});
 });
+
 
 
 // routes 
@@ -84,5 +100,3 @@ const start = async function() {
 start();
 
 
-
-// left off at https://www.theodinproject.com/lessons/nodejs-authentication-basics#creating-users
